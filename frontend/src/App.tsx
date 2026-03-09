@@ -23,7 +23,6 @@ export default function App() {
     setStreaming(true);
 
     // Placeholder AI message (empty = shows typing dots)
-    const aiIndex = messages.length + 1; // user msg just pushed
     setMessages((prev) => [...prev, { role: 'ai', text: '' }]);
 
     const ctrl = new AbortController();
