@@ -231,4 +231,5 @@ if _frontend_dist.is_dir():
 
 
 if __name__ == "__main__":
+    subprocess.Popen("agent-browser connect 9222", shell=True)
     uvicorn.run(app, host="0.0.0.0", port=5050)
