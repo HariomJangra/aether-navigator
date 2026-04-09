@@ -217,6 +217,21 @@ async def status():
     return {"status": "running", "messages": len(memory.get())}
 
 
+@app.get("/context")
+async def get_context():
+    """Return the conversation history (excluding the system message)."""
+    msgs = memory.get()
+    result = []
+    for m in msgs:
+        if isinstance(m, SystemMessage):
+            result.append({"role": "system", "content": m.content})
+        elif isinstance(m, HumanMessage):
+            result.append({"role": "user", "content": m.content})
+        elif isinstance(m, AIMessage):
+            result.append({"role": "ai", "content": m.content})
+    return {"messages": result}
+
+
 # ── Serve React frontend (built with `npm run build`)
 _frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 if _frontend_dist.is_dir():

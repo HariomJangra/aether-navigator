@@ -1,14 +1,14 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 
 interface InputBarProps {
   onSend: (text: string) => void;
   onStop: () => void;
-  onClear: () => void;
   streaming: boolean;
 }
 
-export default function InputBar({ onSend, onStop, onClear, streaming }: InputBarProps) {
+export default function InputBar({ onSend, onStop, streaming }: InputBarProps) {
   const textRef = useRef<HTMLTextAreaElement>(null);
+  const [hasText, setHasText] = useState(false);
 
   useEffect(() => {
     textRef.current?.focus();
@@ -19,6 +19,7 @@ export default function InputBar({ onSend, onStop, onClear, streaming }: InputBa
     if (!el) return;
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+    setHasText(el.value.trim().length > 0);
   };
 
   const handleSend = () => {
@@ -28,23 +29,13 @@ export default function InputBar({ onSend, onStop, onClear, streaming }: InputBa
     if (textRef.current) {
       textRef.current.value = '';
       textRef.current.style.height = 'auto';
+      setHasText(false);
     }
   };
-
-  const hasText = () => (textRef.current?.value.trim().length ?? 0) > 0;
 
   return (
     <footer className="input-bar">
       <div className="input-wrap">
-        <button className="icon-btn clear-btn" onClick={onClear} title="Clear conversation">
-          <svg viewBox="0 0 20 20" fill="none">
-            <path
-              d="M4 6h12M8 6V4h4v2M7 6v9a1 1 0 001 1h4a1 1 0 001-1V6H7z"
-              stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-
         <textarea
           ref={textRef}
           className="prompt-input"
@@ -69,10 +60,10 @@ export default function InputBar({ onSend, onStop, onClear, streaming }: InputBa
           </button>
         ) : (
           <button
-            className="icon-btn send-btn"
+            className={`icon-btn send-btn ${hasText ? 'send-btn--active' : ''}`}
             onClick={handleSend}
             title="Send"
-            disabled={!hasText()}
+            disabled={!hasText}
           >
             <svg viewBox="0 0 20 20" fill="none">
               <path

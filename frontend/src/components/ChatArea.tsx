@@ -1,4 +1,6 @@
 import { useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { ChatMessage } from '../api';
 import EmptyState from './EmptyState';
 import ToolSteps from './ToolSteps';
@@ -59,8 +61,7 @@ export default function ChatArea({ messages, isEmpty }: ChatAreaProps) {
           if (msg.role === 'user') {
             return (
               <div className="msg user" key={i}>
-                <div className="msg-role">You</div>
-                <div className="msg-bubble">{msg.text}</div>
+                <div className="msg-bubble user-bubble">{msg.text}</div>
               </div>
             );
           }
@@ -68,13 +69,17 @@ export default function ChatArea({ messages, isEmpty }: ChatAreaProps) {
           if (msg.role === 'ai') {
             return (
               <div className="msg ai" key={i}>
-                <div className="msg-role">{msg.error ? 'Error' : 'Agent'}</div>
-                <div
-                  className="msg-bubble"
-                  style={msg.error ? { color: '#dc2626' } : msg.stopped ? { color: '#92400e' } : undefined}
-                >
-                  {msg.text || <TypingDots />}
-                </div>
+                {msg.text ? (
+                  <div
+                    className={`ai-prose${msg.error ? ' ai-prose--error' : msg.stopped ? ' ai-prose--stopped' : ''}`}
+                  >
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {msg.text}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <TypingDots />
+                )}
               </div>
             );
           }

@@ -62,3 +62,9 @@ export async function fetchStatus(): Promise<number> {
   const d = await r.json();
   return d.messages ?? 0;
 }
+
+export async function fetchContext(): Promise<{ role: string; content: string }[]> {
+  const r = await fetch('/context');
+  const d = await r.json();
+  return d.messages ?? [];
+}
