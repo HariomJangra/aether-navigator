@@ -215,6 +215,7 @@
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 6;
+  line-clamp: 6;
   -webkit-box-orient: vertical;
   white-space: pre-wrap;
   word-break: break-word;
@@ -769,6 +770,7 @@
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 5;
+  line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
