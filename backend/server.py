@@ -9,6 +9,7 @@ import sys
 import os
 import threading
 import uvicorn
+import socket
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -151,6 +152,7 @@ def stream_chat(user_input: str):
     memory.add("user", user_input)
 
     ai_reply = ""
+    send_winui_signal("START")
 
     try:
         for step in agent.stream({"messages": memory.get()}, stream_mode="updates"):
@@ -181,6 +183,8 @@ def stream_chat(user_input: str):
 
     except Exception as exc:
         yield event({"type": "error", "content": str(exc)})
+    finally:
+        send_winui_signal("STOP")
 
     memory.add("ai", ai_reply)
     yield event({"type": "done"})
@@ -203,6 +207,7 @@ async def chat_endpoint(body: ChatRequest):
 @app.post("/stop")
 async def stop_task():
     _stop_event.set()
+    send_winui_signal("STOP")
     return {"status": "stopping"}
 
 
@@ -244,7 +249,30 @@ if _frontend_dist.is_dir():
             return FileResponse(file)
         return FileResponse(_frontend_dist / "index.html")
 
+def send_winui_signal(signal: str):
+    """Sends a raw TCP string to the WinUI 3 listener on port 8080."""
+    try:
+        # We use AF_INET (IPv4) and SOCK_STREAM (TCP)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.5)  # Don't let it hang if the app isn't open
+            s.connect(("127.0.0.1", 8080))
+            s.sendall(signal.encode('utf-8'))
+    except (ConnectionRefusedError, socket.timeout):
+        # This is expected if the WinUI app is closed
+        print(f"WinUI 3 app not found. Signal '{signal}' not sent.")
+    except Exception as e:
+        print(f"Error signaling WinUI: {e}")
 
 if __name__ == "__main__":
-    subprocess.Popen("agent-browser connect 9222", shell=True)
-    uvicorn.run(app, host="0.0.0.0", port=5050)
+    try:
+        # 2. Launch your browser connection
+        subprocess.Popen("agent-browser connect 9222", shell=True)
+        
+        # 3. Start the FastAPI server
+        # Note: This is a blocking call
+        uvicorn.run(app, host="0.0.0.0", port=5050)
+        
+    finally:
+        # 4. This runs when uvicorn stops (Ctrl+C or shutdown)
+        # Trigger StopGlow() in WinUI
+        send_winui_signal("STOP")
