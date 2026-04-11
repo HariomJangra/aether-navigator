@@ -131,7 +131,7 @@ export default function App() {
   return (
     <div className="panel">
       <Header contextCount={contextCount} onClear={handleClear} />
-      <ChatArea messages={messages} isEmpty={messages.length === 0} />
+      <ChatArea messages={messages} isEmpty={messages.length === 0} isStreaming={streaming} />
       <InputBar onSend={handleSend} onStop={handleStop} streaming={streaming} />
     </div>
   );

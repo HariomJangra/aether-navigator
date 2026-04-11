@@ -8,9 +8,10 @@ import ToolSteps from './ToolSteps';
 interface ChatAreaProps {
   messages: ChatMessage[];
   isEmpty: boolean;
+  isStreaming?: boolean;
 }
 
-export default function ChatArea({ messages, isEmpty }: ChatAreaProps) {
+export default function ChatArea({ messages, isEmpty, isStreaming }: ChatAreaProps) {
   const areaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,7 +54,8 @@ export default function ChatArea({ messages, isEmpty }: ChatAreaProps) {
       <div className="messages">
         {groups.map((group, i) => {
           if (Array.isArray(group)) {
-            return <ToolSteps key={i} steps={group as (Extract<ChatMessage, { role: 'tool_call' }> | Extract<ChatMessage, { role: 'tool_result' }>)[]} />;
+            const isLastGroup = i === groups.length - 1;
+            return <ToolSteps key={i} steps={group as (Extract<ChatMessage, { role: 'tool_call' }> | Extract<ChatMessage, { role: 'tool_result' }>)[]} isStreaming={isLastGroup && isStreaming} />;
           }
 
           const msg = group;

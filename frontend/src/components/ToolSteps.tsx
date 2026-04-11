@@ -5,6 +5,7 @@ type ToolMsg = Extract<ChatMessage, { role: 'tool_call' }> | Extract<ChatMessage
 
 interface ToolStepProps {
   steps: ToolMsg[];
+  isStreaming?: boolean;
 }
 
 function formatArgs(args: Record<string, unknown>): string {
@@ -37,7 +38,7 @@ function WrenchIcon() {
   );
 }
 
-export default function ToolSteps({ steps }: ToolStepProps) {
+export default function ToolSteps({ steps, isStreaming = true }: ToolStepProps) {
   // Open by default
   const [panelOpen, setPanelOpen] = useState(true);
   const [openStep, setOpenStep] = useState<number | null>(null);
@@ -67,7 +68,7 @@ export default function ToolSteps({ steps }: ToolStepProps) {
   }
 
   const lastPair = pairs[pairs.length - 1];
-  const isRunning = lastPair && !lastPair.result;
+  const isRunning = isStreaming && lastPair && !lastPair.result;
 
   // Animate new steps as they appear
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -130,7 +131,7 @@ export default function ToolSteps({ steps }: ToolStepProps) {
                   onClick={() => toggleStep(i)}
                 >
                   <div className="ts-step-left">
-                    <span className={`ts-dot ${done ? 'ts-dot--done' : 'ts-dot--running'}`} />
+                    <span className={`ts-dot ${done ? 'ts-dot--done' : (isStreaming ? 'ts-dot--running' : 'ts-dot--error')}`} />
                     <span className="ts-step-name">{name}</span>
                   </div>
                   <svg

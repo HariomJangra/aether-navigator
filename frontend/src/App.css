@@ -707,6 +707,10 @@
   animation: pulse 1.2s ease-in-out infinite;
 }
 
+.ts-dot--error {
+  background: #ef4444;
+}
+
 .ts-step-name {
   font-size: 13px;
   font-weight: 500;
