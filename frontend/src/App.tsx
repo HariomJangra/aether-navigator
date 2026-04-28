@@ -13,7 +13,7 @@ export default function App() {
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    fetchStatus().then(setContextCount).catch(() => {});
+    fetchStatus().then(setContextCount).catch(() => { });
   }, []);
 
   const handleSend = useCallback(async (text: string) => {
@@ -84,7 +84,7 @@ export default function App() {
               return copy;
             });
           }
-          fetchStatus().then(setContextCount).catch(() => {});
+          fetchStatus().then(setContextCount).catch(() => { });
           break;
       }
     };
@@ -118,12 +118,12 @@ export default function App() {
   }, [streaming, messages.length]);
 
   const handleStop = useCallback(async () => {
-    stopTask().catch(() => {});
+    stopTask().catch(() => { });
     abortRef.current?.abort();
   }, []);
 
   const handleClear = useCallback(async () => {
-    clearMemory().catch(() => {});
+    clearMemory().catch(() => { });
     setMessages([]);
     setContextCount(0);
   }, []);

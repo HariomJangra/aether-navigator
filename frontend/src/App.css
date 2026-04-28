@@ -31,6 +31,7 @@
   width: 24px;
   height: 24px;
   flex-shrink: 0;
+  display: block;
 }
 
 .logo-text {
@@ -287,6 +288,7 @@
   height: 48px;
   opacity: 0.5;
   margin-bottom: 4px;
+  display: block;
 }
 
 .empty-title {
