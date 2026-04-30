@@ -24,8 +24,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # Globals
 
 agent = None
-memory = None
-_stop_event = threading.Event()
+# Per-session state – keyed by session_id (a UUID generated per browser tab)
+sessions: dict[str, object] = {}
+_stop_events: dict[str, threading.Event] = {}
 
 
 # WinUI signal
@@ -45,7 +46,7 @@ def send_winui_signal(signal: str):
 # LangChain init (lazy, runs in background thread)
 
 def init_langchain():
-    global agent, memory
+    global agent
 
     if agent is not None:
         return
@@ -131,7 +132,8 @@ def init_langchain():
         def clear(self):
             self.history = [self.history[0]]
 
-    memory = ConversationMemory()
+    # Store the class so endpoints can instantiate per-session copies
+    init_langchain._ConversationMemory = ConversationMemory
     agent = create_agent("groq:openai/gpt-oss-120b", tools=[snapshot, navigate, interact])
 
 # FastAPI app
@@ -147,6 +149,11 @@ async def startup_event():
 # Models
 class ChatRequest(BaseModel):
     message: str
+    session_id: str = "default"
+
+
+class SessionRequest(BaseModel):
+    session_id: str = "default"
 
 
 # Streaming
@@ -154,11 +161,22 @@ def event(payload: dict) -> str:
     return f"data: {json.dumps(payload)}\n\n"
 
 
-def stream_chat(user_input: str):
-    while agent is None or memory is None:
+def stream_chat(user_input: str, session_id: str):
+    """Stream a chat response for an isolated per-tab session."""
+    # Wait until the agent (and ConversationMemory class) are ready
+    while agent is None or not hasattr(init_langchain, "_ConversationMemory"):
         time.sleep(0.1)
 
-    _stop_event.clear()
+    # Ensure this session has its own memory and stop-event
+    if session_id not in sessions:
+        sessions[session_id] = init_langchain._ConversationMemory()
+    if session_id not in _stop_events:
+        _stop_events[session_id] = threading.Event()
+
+    memory = sessions[session_id]
+    stop_event = _stop_events[session_id]
+
+    stop_event.clear()
     memory.add("user", user_input)
 
     ai_reply = ""
@@ -166,7 +184,7 @@ def stream_chat(user_input: str):
 
     try:
         for step in agent.stream({"messages": memory.get()}, stream_mode="updates"):
-            if _stop_event.is_set():
+            if stop_event.is_set():
                 yield event({"type": "stopped", "content": "Task stopped by user."})
                 break
 
@@ -200,38 +218,43 @@ async def chat_endpoint(body: ChatRequest):
     if not user_input:
         return {"error": "Empty message"}
     return StreamingResponse(
-        stream_chat(user_input),
+        stream_chat(user_input, body.session_id),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 
 @app.post("/stop")
-async def stop_task():
-    _stop_event.set()
+async def stop_task(body: SessionRequest):
+    ev = _stop_events.get(body.session_id)
+    if ev:
+        ev.set()
     send_winui_signal("STOP")
     return {"status": "stopping"}
 
 
 @app.post("/clear")
-async def clear_memory():
-    if memory is not None:
-        memory.clear()
+async def clear_memory(body: SessionRequest):
+    mem = sessions.get(body.session_id)
+    if mem is not None:
+        mem.clear()
     return {"status": "cleared"}
 
 
 @app.get("/status")
-async def status():
-    msgs_len = len(memory.get()) if memory is not None else 1
+async def status(session_id: str = "default"):
+    mem = sessions.get(session_id)
+    msgs_len = len(mem.get()) if mem is not None else 1
     return {"status": "running", "messages": msgs_len}
 
 
 @app.get("/context")
-async def get_context():
-    if memory is None:
+async def get_context(session_id: str = "default"):
+    mem = sessions.get(session_id)
+    if mem is None:
         return {"messages": []}
 
-    msgs = memory.get()
+    msgs = mem.get()
     result = []
     for m in msgs:
         cls_name = m.__class__.__name__

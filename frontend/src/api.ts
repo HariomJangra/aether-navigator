@@ -1,3 +1,7 @@
+// Stable, per-tab session identifier — generated once when this JS module
+// is first loaded (i.e. once per WebView2 instance / browser tab).
+const SESSION_ID: string = crypto.randomUUID();
+
 export type SSEEvent =
   | { type: 'tool_call'; name: string; args: Record<string, unknown> }
   | { type: 'tool_result'; name: string; preview: string }
@@ -20,7 +24,7 @@ export async function streamChat(
   const resp = await fetch('/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, session_id: SESSION_ID }),
     signal,
   });
 
@@ -50,21 +54,29 @@ export async function streamChat(
 }
 
 export async function stopTask() {
-  await fetch('/stop', { method: 'POST' });
+  await fetch('/stop', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: SESSION_ID }),
+  });
 }
 
 export async function clearMemory() {
-  await fetch('/clear', { method: 'POST' });
+  await fetch('/clear', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: SESSION_ID }),
+  });
 }
 
 export async function fetchStatus(): Promise<number> {
-  const r = await fetch('/status');
+  const r = await fetch(`/status?session_id=${SESSION_ID}`);
   const d = await r.json();
   return d.messages ?? 0;
 }
 
 export async function fetchContext(): Promise<{ role: string; content: string }[]> {
-  const r = await fetch('/context');
+  const r = await fetch(`/context?session_id=${SESSION_ID}`);
   const d = await r.json();
   return d.messages ?? [];
 }
